@@ -8,10 +8,301 @@
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Mona Mayhem</title>
+		<title>Mona Mayhem — GitHub Contribution Battle Arena</title>
+		<style>
+			*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+			body {
+				font-family: "Courier New", Courier, monospace;
+				background: #0d0d0d;
+				color: #00ff88;
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 2rem 1rem;
+			}
+
+			h1 {
+				font-size: 2.5rem;
+				letter-spacing: 0.1em;
+				text-shadow: 0 0 12px #00ff88;
+				margin-bottom: 0.25rem;
+			}
+
+			.subtitle {
+				color: #aaa;
+				margin-bottom: 2rem;
+				font-size: 0.9rem;
+			}
+
+			.battle-form {
+				display: flex;
+				gap: 1rem;
+				align-items: flex-end;
+				flex-wrap: wrap;
+				justify-content: center;
+				margin-bottom: 2rem;
+			}
+
+			.player-field {
+				display: flex;
+				flex-direction: column;
+				gap: 0.4rem;
+			}
+
+			.player-field label {
+				font-size: 0.85rem;
+				color: #aaa;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+			}
+
+			.player-field input {
+				background: #1a1a1a;
+				border: 1px solid #00ff88;
+				color: #00ff88;
+				font-family: inherit;
+				font-size: 1rem;
+				padding: 0.5rem 0.75rem;
+				border-radius: 4px;
+				width: 200px;
+				outline: none;
+			}
+
+			.player-field input:focus {
+				box-shadow: 0 0 6px #00ff88;
+			}
+
+			.vs {
+				font-size: 1.4rem;
+				font-weight: bold;
+				color: #ff5555;
+				align-self: flex-end;
+				padding-bottom: 0.5rem;
+			}
+
+			.battle-btn {
+				background: #00ff88;
+				color: #0d0d0d;
+				border: none;
+				font-family: inherit;
+				font-size: 1rem;
+				font-weight: bold;
+				padding: 0.55rem 1.5rem;
+				border-radius: 4px;
+				cursor: pointer;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				align-self: flex-end;
+			}
+
+			.battle-btn:hover { background: #00cc6a; }
+			.battle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+			#result {
+				width: 100%;
+				max-width: 680px;
+			}
+
+			.result-grid {
+				display: grid;
+				grid-template-columns: 1fr auto 1fr;
+				gap: 1rem;
+				align-items: start;
+			}
+
+			.player-card {
+				background: #1a1a1a;
+				border: 1px solid #333;
+				border-radius: 6px;
+				padding: 1rem;
+				text-align: center;
+			}
+
+			.player-card img {
+				width: 72px;
+				height: 72px;
+				border-radius: 50%;
+				border: 2px solid #00ff88;
+				margin-bottom: 0.5rem;
+			}
+
+			.player-card h2 {
+				font-size: 1.1rem;
+				margin-bottom: 0.75rem;
+				color: #fff;
+			}
+
+			.stat {
+				display: flex;
+				justify-content: space-between;
+				font-size: 0.85rem;
+				padding: 0.25rem 0;
+				border-bottom: 1px solid #222;
+			}
+
+			.stat:last-child { border-bottom: none; }
+
+			.stat-label { color: #aaa; }
+
+			.stat-value { color: #00ff88; font-weight: bold; }
+
+			.stat-value.winner { color: #ffd700; text-shadow: 0 0 6px #ffd700; }
+
+			.divider {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 0.5rem;
+				color: #ff5555;
+				font-size: 1.2rem;
+				font-weight: bold;
+				padding-top: 2.5rem;
+			}
+
+			.winner-banner {
+				margin-top: 1.5rem;
+				text-align: center;
+				font-size: 1.3rem;
+				color: #ffd700;
+				text-shadow: 0 0 10px #ffd700;
+				letter-spacing: 0.05em;
+			}
+
+			.error-msg {
+				color: #ff5555;
+				text-align: center;
+				padding: 1rem;
+				border: 1px solid #ff5555;
+				border-radius: 6px;
+				background: #1a0000;
+			}
+
+			.loading-msg {
+				text-align: center;
+				color: #aaa;
+				padding: 1rem;
+			}
+		</style>
 	</head>
 	<body>
-		<h1>Mona Mayhem</h1>
-		<p>Welcome to Mona Mayhem! Time to build a GitHub Contribution Battle Arena.</p>
+		<h1>⚔️ Mona Mayhem</h1>
+		<p class="subtitle">GitHub Contribution Battle Arena</p>
+
+		<div class="battle-form">
+			<div class="player-field">
+				<label for="player1">Player 1</label>
+				<input id="player1" type="text" placeholder="github username" autocomplete="off" />
+			</div>
+
+			<span class="vs">VS</span>
+
+			<div class="player-field">
+				<label for="player2">Player 2</label>
+				<input id="player2" type="text" placeholder="github username" autocomplete="off" />
+			</div>
+
+			<button class="battle-btn" id="battleBtn">Battle!</button>
+		</div>
+
+		<div id="result"></div>
+
+		<script>
+			const btn = document.getElementById('battleBtn') as HTMLButtonElement;
+			const resultEl = document.getElementById('result')!;
+
+			interface GitHubUser {
+				username: string;
+				name: string | null;
+				avatar_url: string;
+				public_repos: number;
+				followers: number;
+				following: number;
+			}
+
+			function escapeHTML(str: string): string {
+				return str
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;')
+					.replace(/'/g, '&#39;');
+			}
+
+			btn.addEventListener('click', async () => {
+				const p1 = (document.getElementById('player1') as HTMLInputElement).value.trim();
+				const p2 = (document.getElementById('player2') as HTMLInputElement).value.trim();
+
+				if (!p1 || !p2) {
+					resultEl.innerHTML = '<p class="error-msg">Please enter both usernames.</p>';
+					return;
+				}
+
+				btn.disabled = true;
+				resultEl.innerHTML = '<p class="loading-msg">Fetching data…</p>';
+
+				try {
+					const [r1, r2] = await Promise.all([
+						fetch(`/api/contributions/${encodeURIComponent(p1)}`),
+						fetch(`/api/contributions/${encodeURIComponent(p2)}`),
+					]);
+
+					if (!r1.ok || !r2.ok) {
+						const errData = !r1.ok ? await r1.json() : await r2.json();
+						throw new Error(errData.error || 'Failed to fetch user data');
+					}
+
+					const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
+
+					// Simple scoring: repos + followers
+					const score1 = d1.public_repos + d1.followers;
+					const score2 = d2.public_repos + d2.followers;
+
+					const winner =
+						score1 > score2 ? d1.username :
+						score2 > score1 ? d2.username :
+						null; // tie
+
+					function statVal(val: number, opponentVal: number) {
+						return `<span class="stat-value${val > opponentVal ? ' winner' : ''}">${val}</span>`;
+					}
+
+					function cardHTML(d: GitHubUser, opp: GitHubUser) {
+						const myScore = d.public_repos + d.followers;
+						const oppScore = opp.public_repos + opp.followers;
+						const displayName = escapeHTML(d.name || d.username);
+						const safeUsername = escapeHTML(d.username);
+						const safeAvatar = escapeHTML(d.avatar_url);
+						return `
+							<div class="player-card">
+								<img src="${safeAvatar}" alt="${safeUsername}" />
+								<h2>${displayName}<br><small style="color:#aaa;font-size:0.75rem">@${safeUsername}</small></h2>
+								<div class="stat"><span class="stat-label">Public Repos</span>${statVal(d.public_repos, opp.public_repos)}</div>
+								<div class="stat"><span class="stat-label">Followers</span>${statVal(d.followers, opp.followers)}</div>
+								<div class="stat"><span class="stat-label">Following</span><span class="stat-value">${d.following}</span></div>
+								<div class="stat"><span class="stat-label">Score</span>${statVal(myScore, oppScore)}</div>
+							</div>`;
+					}
+
+					const winnerText = winner
+						? `🏆 ${escapeHTML(winner)} wins the battle!`
+						: "🤝 It's a tie!";
+
+					resultEl.innerHTML = `
+						<div class="result-grid">
+							${cardHTML(d1, d2)}
+							<div class="divider"><span>⚔️</span></div>
+							${cardHTML(d2, d1)}
+						</div>
+						<p class="winner-banner">${winnerText}</p>`;
+				} catch (err: any) {
+					resultEl.innerHTML = `<p class="error-msg">Error: ${escapeHTML(String(err.message))}</p>`;
+				} finally {
+					btn.disabled = false;
+				}
+			});
+		</script>
 	</body>
 </html>
